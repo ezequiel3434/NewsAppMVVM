@@ -13,6 +13,7 @@ import RxSwift
 class NewsTableViewController: UITableViewController {
     
     let disposeBag = DisposeBag()
+    private var articleListVM: ArticleListViewModel!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -22,13 +23,48 @@ class NewsTableViewController: UITableViewController {
         populateNews()
     }
     
+    override func numberOfSections(in tableView: UITableView) -> Int {
+        return 1
+    }
+    
+    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return articleListVM == nil ? 0 : articleListVM.articlesVM.count
+    }
+    
+    
     private func populateNews(){
         let resource = Resource<ArticleResponse>(url: URL(string: "https://newsapi.org/v2/top-headlines?country=us&apiKey=0f592d1c093f4f56885e639c2b770da5")!)
         
         URLRequest.load(resource: resource)
-            .subscribe(onNext: {
-                print($0)
+            .subscribe(onNext: { [weak self] articleResponse in
+                guard let self = self else {return}
+                let articles = articleResponse.articles
+                self.articleListVM = ArticleListViewModel(articles)
+                
+                DispatchQueue.main.async {
+                    self.tableView.reloadData()
+                }
+                
+                
             }).disposed(by: disposeBag)
+    }
+    
+    
+    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: "ArticleTableViewCell", for: indexPath) as? ArticleTableViewCell else {
+            fatalError("ArticleTableViewCell is not found")
+        }
+        
+        let articleVM = articleListVM.articleAt(indexPath.row)
+        
+        articleVM.title.asDriver(onErrorJustReturn: "")
+            .drive(cell.titleLabel.rx.text)
+            .disposed(by: disposeBag)
+        articleVM.description.asDriver(onErrorJustReturn: "")
+            .drive(cell.descriptionLabel.rx.text)
+            .disposed(by: disposeBag)
+        
+        return cell
     }
     
 }
