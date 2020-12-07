@@ -7,13 +7,30 @@
 
 import Foundation
 import UIKit
+import RxCocoa
+import RxSwift
 
 class NewsTableViewController: UITableViewController {
+    
+    let disposeBag = DisposeBag()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         self.navigationController?.navigationBar.prefersLargeTitles = true
         self.navigationController?.setStatusBar(backgroundColor: UIColor(displayP3Red: 142/255, green: 68/255, blue: 173/255, alpha: 1.0))
+        
+        populateNews()
     }
+    
+    private func populateNews(){
+        let resource = Resource<ArticleResponse>(url: URL(string: "https://newsapi.org/v2/top-headlines?country=us&apiKey=0f592d1c093f4f56885e639c2b770da5")!)
+        
+        URLRequest.load(resource: resource)
+            .subscribe(onNext: {
+                print($0)
+            }).disposed(by: disposeBag)
+    }
+    
 }
 
 
